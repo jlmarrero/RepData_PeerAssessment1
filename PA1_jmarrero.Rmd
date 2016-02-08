@@ -1,0 +1,111 @@
+---
+title: "Reproducible Research -- Project 1"
+author: "Jonathan L. Marrero"
+date: "February 7, 2016"
+output: html_document
+---
+
+### Step 1. Loading and Processing Data 
+
+```{r, echo = TRUE}
+library(readr)
+df <- read_csv("rep_activity.csv")
+```
+
+### Step 2. What is mean total number of steps take per day?
+
+```{r, echo = TRUE}
+daily_sum <-tapply(df$steps, df$date, sum, na.rm = TRUE)
+hist(daily_sum, breaks = 30, main = "Total Steps Taken Daily", xlab = "Total Steps Per Day")
+```
+ 
+#### Mean of the total steps taken each day:
+
+```{r, echo = TRUE}
+mean(daily_sum)
+```
+
+#### Median of the total steps taken each day:
+
+```{r, echo = TRUE}
+median(daily_sum)
+```
+
+### Step 3. What is the average daily activity pattern?
+
+##### A plot of the average steps taken at 5-minute intervals for all days:
+
+```{r, echo = TRUE}
+plot(tapply(df$steps, df$interval, mean, na.rm = TRUE), type = "l", ylab = "Avg. Steps", xlab = "5 Minute Interval", main = c("Average Steps Taken at 5-Minute Intervals", "(24 Hours)"), ylim = c(0,200))
+```
+
+##### The 5-minute interval with the highest average steps across all days:
+
+```{r, echo = TRUE}
+which.max(tapply(df$steps, df$interval, mean, na.rm = TRUE))
+```
+
+### Step 4. Inputing missing values
+
+##### Number of missing values: 
+
+```{r, echo = TRUE}
+sum(is.na(df))
+```
+
+#### Creating a new dataset replacing the missing step data with the median for that day.
+
+```{r, echo = TRUE}
+df2 <- df ## duplicating the original dataset 
+avg <- mean(df2$steps, na.rm = TRUE)
+for(i in 1:nrow(df2)){
+  if (is.na(df2$steps[i]) == "TRUE"){
+    df2$steps[i] <- avg
+  }
+}
+
+## Calculating the daily totals
+daily_sum2 <-tapply(df2$steps, df2$date, sum, na.rm = TRUE)
+hist(daily_sum2, breaks = 30, main = "Total Steps Taken Daily", xlab = "Total Steps Per Day")
+
+```
+
+##### Mean of total steps taken per day:
+
+```{r, echo = TRUE}
+mean(daily_sum2)
+```
+
+##### Median of total steps taken per day:
+
+```{r, echo = TRUE}
+median(daily_sum2)
+```
+
+#### The impact of replacing missing data: 
+
+```{r, echo = TRUE}
+par(mfrow=c(1,2), mar = c(5,4,3.5,2))
+boxplot(daily_sum, main = "With Missing Data")
+boxplot(daily_sum2, main = "Replaced Missing Data")
+```
+
+### Step 5. Are there differences in activity patterns between weekdays and weekends?
+
+```{r, echo = TRUE}
+library(lattice)
+
+for(i in 1:nrow(df2)){
+  if (weekdays(df2$date[i]) %in% c("Sunday","Saturday")) {
+    df2$weekday[i] <- "weekend"
+  } else {
+    df2$weekday[i] <- "weekday"
+  }
+}
+
+df2$y <- tapply(df2$steps[df2$weekday == "weekend"], df2$interval[df2$weekday == "weekend"], mean, na.rm = TRUE)
+
+df2$wy <- tapply(df2$steps[df2$weekday == "weekday"], df2$interval[df2$weekday == "weekday"], mean, na.rm = TRUE)
+
+xyplot(y + wy ~ interval | weekday, data = df2, type = "l", layout = c(1,2), ylab = "Steps", xlab = "Interval", main = "Avg Steps Weekend vs Weekday")
+```
